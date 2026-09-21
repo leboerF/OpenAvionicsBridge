@@ -7,7 +7,7 @@ body:
     id: version
     attributes:
       label: OpenAvionicsBridge version
-      placeholder: 1.0.0-rc2
+      placeholder: 1.0.0-rc3
     validations:
       required: true
   - type: input
@@ -33,5 +33,5 @@ body:
     id: logs
     attributes:
       label: Relevant log excerpt
-      description: Remove any personal information before posting.
+      description: Include the relevant bridge log and compatibility-report.txt when available. Remove personal path information before posting if desired.
       render: text

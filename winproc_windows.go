@@ -62,6 +62,7 @@ type winProcess struct {
 	Name string
 }
 type winModule struct {
+	PID        uint32
 	Base       uintptr
 	Size       uint32
 	Name, Path string
@@ -115,7 +116,7 @@ func listModules(pid uint32) ([]winModule, error) {
 	}
 	mods := make([]winModule, 0, 256)
 	for {
-		mods = append(mods, winModule{Base: me.ModBaseAddr, Size: me.ModBaseSize, Name: syscall.UTF16ToString(me.SzModule[:]), Path: syscall.UTF16ToString(me.SzExePath[:])})
+		mods = append(mods, winModule{PID: pid, Base: me.ModBaseAddr, Size: me.ModBaseSize, Name: syscall.UTF16ToString(me.SzModule[:]), Path: syscall.UTF16ToString(me.SzExePath[:])})
 		me.Size = uint32(unsafe.Sizeof(me))
 		r, _, _ = pModule32NextW.Call(snap, uintptr(unsafe.Pointer(&me)))
 		if r == 0 {
@@ -168,4 +169,147 @@ func sha256File(path string) (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
+}
+
+
+// remotePEExports returns exported names and their RVAs directly from the
+// loaded module image inside the simulator process. Reading the in-memory PE
+// export directory avoids depending on the module's on-disk filename or path.
+func (h processHandle) remotePEExports(mod winModule) (map[string]uint32, error) {
+	headerSize := 0x2000
+	if mod.Size > 0 && int(mod.Size) < headerSize {
+		headerSize = int(mod.Size)
+	}
+	if headerSize < 0x100 {
+		return nil, fmt.Errorf("module %s is too small to contain a PE header", mod.Name)
+	}
+	header, err := h.Read(mod.Base, headerSize)
+	if err != nil {
+		return nil, err
+	}
+	if len(header) < 0x100 || header[0] != 'M' || header[1] != 'Z' {
+		return nil, fmt.Errorf("module %s has no valid DOS header", mod.Name)
+	}
+	peOff := int(binary.LittleEndian.Uint32(header[0x3c:0x40]))
+	if peOff < 0 || peOff+0x200 > len(header) {
+		return nil, fmt.Errorf("module %s has an invalid PE header offset", mod.Name)
+	}
+	if string(header[peOff:peOff+4]) != "PE\x00\x00" {
+		return nil, fmt.Errorf("module %s has no valid PE signature", mod.Name)
+	}
+	optional := peOff + 24
+	if optional+2 > len(header) {
+		return nil, fmt.Errorf("module %s has a truncated optional header", mod.Name)
+	}
+	magic := binary.LittleEndian.Uint16(header[optional : optional+2])
+	var dataDir int
+	switch magic {
+	case 0x20b:
+		dataDir = optional + 112
+	case 0x10b:
+		dataDir = optional + 96
+	default:
+		return nil, fmt.Errorf("module %s has unsupported PE optional-header magic 0x%X", mod.Name, magic)
+	}
+	if dataDir+8 > len(header) {
+		return nil, fmt.Errorf("module %s has a truncated export data directory", mod.Name)
+	}
+	exportRVA := binary.LittleEndian.Uint32(header[dataDir : dataDir+4])
+	exportSize := binary.LittleEndian.Uint32(header[dataDir+4 : dataDir+8])
+	if exportRVA == 0 || exportSize == 0 {
+		return map[string]uint32{}, nil
+	}
+	if exportSize > 16*1024*1024 {
+		return nil, fmt.Errorf("module %s has an implausible export directory size", mod.Name)
+	}
+	blob, err := h.Read(mod.Base+uintptr(exportRVA), int(exportSize))
+	if err != nil {
+		return nil, err
+	}
+	if len(blob) < 40 {
+		return nil, fmt.Errorf("module %s has a truncated export directory", mod.Name)
+	}
+	ed := blob[:40]
+	numFunctions := binary.LittleEndian.Uint32(ed[20:24])
+	numNames := binary.LittleEndian.Uint32(ed[24:28])
+	functionsRVA := binary.LittleEndian.Uint32(ed[28:32])
+	namesRVA := binary.LittleEndian.Uint32(ed[32:36])
+	ordinalsRVA := binary.LittleEndian.Uint32(ed[36:40])
+	if numNames == 0 || numFunctions == 0 {
+		return map[string]uint32{}, nil
+	}
+	if numNames > 100000 || numFunctions > 100000 {
+		return nil, fmt.Errorf("module %s has implausible export counts", mod.Name)
+	}
+
+	readRVA := func(rva uint32, size int) ([]byte, error) {
+		if rva >= exportRVA {
+			rel := uint64(rva - exportRVA)
+			if rel+uint64(size) <= uint64(len(blob)) {
+				return blob[rel : rel+uint64(size)], nil
+			}
+		}
+		return h.Read(mod.Base+uintptr(rva), size)
+	}
+	names, err := readRVA(namesRVA, int(numNames)*4)
+	if err != nil {
+		return nil, err
+	}
+	ords, err := readRVA(ordinalsRVA, int(numNames)*2)
+	if err != nil {
+		return nil, err
+	}
+	funcs, err := readRVA(functionsRVA, int(numFunctions)*4)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make(map[string]uint32)
+	for i := uint32(0); i < numNames; i++ {
+		nameRVA := binary.LittleEndian.Uint32(names[i*4 : i*4+4])
+		var name string
+		if nameRVA >= exportRVA {
+			rel := int(nameRVA - exportRVA)
+			if rel >= 0 && rel < len(blob) {
+				end := rel
+				limit := rel + 512
+				if limit > len(blob) {
+					limit = len(blob)
+				}
+				for end < limit && blob[end] != 0 {
+					end++
+				}
+				name = string(blob[rel:end])
+			}
+		}
+		if name == "" {
+			name, _ = h.readCString(mod.Base+uintptr(nameRVA), 512)
+		}
+		if !strings.Contains(name, "_WASM_") {
+			continue
+		}
+		ord := binary.LittleEndian.Uint16(ords[i*2 : i*2+2])
+		if uint32(ord) >= numFunctions {
+			continue
+		}
+		funcRVA := binary.LittleEndian.Uint32(funcs[uint32(ord)*4 : uint32(ord)*4+4])
+		out[name] = funcRVA
+	}
+	return out, nil
+}
+
+func (h processHandle) readCString(address uintptr, max int) (string, error) {
+	if max <= 0 {
+		return "", nil
+	}
+	b, err := h.Read(address, max)
+	if err != nil {
+		return "", err
+	}
+	for i, c := range b {
+		if c == 0 {
+			return string(b[:i]), nil
+		}
+	}
+	return string(b), nil
 }

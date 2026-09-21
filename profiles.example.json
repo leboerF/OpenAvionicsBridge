@@ -1,0 +1,41 @@
+{
+  "profiles": [
+    {
+      "id": "justflight-f70-f100-1.3",
+      "adapter": "wasm-linear-memory-cdu-v1",
+      "manufacturer": "Just Flight",
+      "aircraft": "F70/F100 Professional",
+      "displayName": "Just Flight F70/F100 Professional - 1.3 compatible layout",
+      "moduleNames": [
+        "m14f2f2d272d86b96_0.dll"
+      ],
+      "knownModuleSha256": [
+        "04ec747e90bb07e88a55e977856d47d5dd0cfc5a7cbee0e899ae2770b6cace87"
+      ],
+      "requiredExportSuffixes": [
+        "_WASM_linearmemory0",
+        "_WASM_CDU_DISP_gauge_callback",
+        "_WASM_CDU_DISP_2_gauge_callback"
+      ],
+      "linearMemoryExportSuffix": "_WASM_linearmemory0",
+      "captain": {
+        "titleLarge": 1574384,
+        "titleSmall": 1574576,
+        "labelLayer": 1574768,
+        "largeLayer": 1577072,
+        "smallLayer": 1579376,
+        "scratchpad": 1581680,
+        "url": "ws://localhost:8320/winwing/cdu-captain"
+      },
+      "copilot": {
+        "titleLarge": 1574480,
+        "titleSmall": 1574672,
+        "labelLayer": 1575920,
+        "largeLayer": 1578224,
+        "smallLayer": 1580528,
+        "scratchpad": 1581776,
+        "url": "ws://localhost:8320/winwing/cdu-co-pilot"
+      }
+    }
+  ]
+}

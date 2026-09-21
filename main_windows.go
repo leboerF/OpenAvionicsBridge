@@ -169,8 +169,8 @@ type guiState struct {
 	engine *bridgeEngine
 	hwnd   uintptr
 
-	statusMSFS, statusF100, statusMF, statusBridge, statusBuild uintptr
-	dotMSFS, dotF100, dotMF, dotBridge                          uintptr
+	statusMSFS, statusAircraft, statusMF, statusBridge, statusBuild uintptr
+	dotMSFS, dotAircraft, dotMF, dotBridge                          uintptr
 	headerStatus                                                uintptr
 	cdu, auto, start, stop                                      uintptr
 	previewCheck, preview, logBox, errorLabel, openLogs         uintptr
@@ -483,9 +483,9 @@ func updateGUI() {
 		setText(gui.statusMSFS, s.MSFS)
 		setColor(gui.dotMSFS, statusColor(s.MSFS, s.Requested))
 	}
-	if s.F100 != gui.last.F100 {
-		setText(gui.statusF100, s.F100)
-		setColor(gui.dotF100, statusColor(s.F100, s.Requested))
+	if s.Aircraft != gui.last.Aircraft {
+		setText(gui.statusAircraft, s.Aircraft)
+		setColor(gui.dotAircraft, statusColor(s.Aircraft, s.Requested))
 	}
 	if s.MobiFlight != gui.last.MobiFlight {
 		setText(gui.statusMF, s.MobiFlight)
@@ -588,7 +588,7 @@ func initGUI(e *bridgeEngine) error {
 	// Header
 	title := static(appName, 24, 18, 500, 34, gui.fontTitle)
 	setColor(title, clrText)
-	sub := static("F70/F100 CDU Bridge  ·  WinWing / MobiFlight", 26, 54, 520, 20, gui.font)
+	sub := static("MSFS avionics display bridge  ·  WinWing / MobiFlight", 26, 54, 560, 20, gui.font)
 	setColor(sub, clrMuted)
 	gui.headerStatus = static("BRIDGE STOPPED", 650, 31, 245, 24, gui.fontLabel)
 	setColor(gui.headerStatus, clrGray)
@@ -604,7 +604,7 @@ func initGUI(e *bridgeEngine) error {
 		initial string
 	}{
 		{160, "Microsoft Flight Simulator 2024", &gui.dotMSFS, &gui.statusMSFS, "Checking..."},
-		{196, "Just Flight F70/F100", &gui.dotF100, &gui.statusF100, "Waiting for aircraft"},
+		{196, "Aircraft adapter", &gui.dotAircraft, &gui.statusAircraft, "Waiting for aircraft"},
 		{232, "MobiFlight / WinCtrl", &gui.dotMF, &gui.statusMF, "Not connected"},
 		{268, "Bridge", &gui.dotBridge, &gui.statusBridge, "Bridge stopped"},
 	}

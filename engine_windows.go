@@ -11,29 +11,6 @@ import (
 	"time"
 )
 
-type cduLayout struct {
-	TitleLarge uint64 `json:"titleLarge"`
-	TitleSmall uint64 `json:"titleSmall"`
-	LabelLayer uint64 `json:"labelLayer"`
-	LargeLayer uint64 `json:"largeLayer"`
-	SmallLayer uint64 `json:"smallLayer"`
-	Scratchpad uint64 `json:"scratchpad"`
-	URL        string `json:"url"`
-}
-
-type buildProfile struct {
-	ID                    string    `json:"id"`
-	DisplayName           string    `json:"displayName"`
-	ModuleNames           []string  `json:"moduleNames"`
-	ModuleSHA256          string    `json:"moduleSha256"`
-	LinearMemoryExportRVA uint64    `json:"linearMemoryExportRva"`
-	Captain               cduLayout `json:"captain"`
-	Copilot               cduLayout `json:"copilot"`
-}
-type profileFile struct {
-	Profiles []buildProfile `json:"profiles"`
-}
-
 type appSettings struct {
 	CDU         string `json:"cdu"`
 	AutoStart   bool   `json:"autoStart"`
@@ -42,7 +19,7 @@ type appSettings struct {
 
 type statusSnapshot struct {
 	MSFS        string
-	F100        string
+	Aircraft    string
 	MobiFlight  string
 	Bridge      string
 	Build       string
@@ -63,16 +40,17 @@ type bridgeEngine struct {
 	cdu         string
 	autoStart   bool
 	showPreview bool
-	profiles    []buildProfile
+	profiles    []aircraftProfile
+	adapters    map[string]aircraftAdapter
 
-	msfsStatus, f100Status, mfStatus, bridgeStatus, buildStatus, errorText string
-	preview                                                                [14]string
-	logs                                                                   []string
+	msfsStatus, aircraftStatus, mfStatus, bridgeStatus, buildStatus, errorText string
+	preview                                                                    [14]string
+	logs                                                                       []string
 
 	handle      processHandle
 	pid         uint32
 	mod         winModule
-	profile     *buildProfile
+	profile     *aircraftProfile
 	layout      cduLayout
 	linear      uintptr
 	ws          *simpleWebSocket
@@ -80,22 +58,10 @@ type bridgeEngine struct {
 	lastSend    time.Time
 	lastConnect time.Time
 	lastDetect  time.Time
-	hashCache   map[string]string
 	stopOnce    sync.Once
 
-	appDir, dataDir, logDir, logPath, settingsPath string
-}
-
-func defaultProfiles() []buildProfile {
-	return []buildProfile{{
-		ID:                    "jf-f100-1.3-analyzed",
-		DisplayName:           "Just Flight F70/F100 Professional - compatible 1.3 build",
-		ModuleNames:           []string{"m14f2f2d272d86b96_0.dll"},
-		ModuleSHA256:          "04ec747e90bb07e88a55e977856d47d5dd0cfc5a7cbee0e899ae2770b6cace87",
-		LinearMemoryExportRVA: 0x417040,
-		Captain:               cduLayout{TitleLarge: 0x1805F0, TitleSmall: 0x1806B0, LabelLayer: 0x180770, LargeLayer: 0x181070, SmallLayer: 0x181970, Scratchpad: 0x182270, URL: "ws://localhost:8320/winwing/cdu-captain"},
-		Copilot:               cduLayout{TitleLarge: 0x180650, TitleSmall: 0x180710, LabelLayer: 0x180BF0, LargeLayer: 0x1814F0, SmallLayer: 0x181DF0, Scratchpad: 0x1822D0, URL: "ws://localhost:8320/winwing/cdu-co-pilot"},
-	}}
+	appDir, dataDir, logDir, logPath, settingsPath, compatibilityReportPath string
+	lastCompatibilityReport                                                 string
 }
 
 func newBridgeEngine() (*bridgeEngine, error) {
@@ -116,14 +82,14 @@ func newBridgeEngine() (*bridgeEngine, error) {
 	e := &bridgeEngine{
 		stop: make(chan struct{}), wake: make(chan struct{}, 1),
 		requested: false, cdu: "captain", autoStart: true, showPreview: true,
-		profiles: defaultProfiles(), hashCache: map[string]string{},
+		profiles: defaultProfiles(), adapters: defaultAircraftAdapters(),
 		appDir: appDir, dataDir: dataDir, logDir: logDir,
-		settingsPath: filepath.Join(dataDir, "settings.json"),
-		logPath:      filepath.Join(logDir, "bridge-"+time.Now().Format("2006-01-02")+".log"),
-		msfsStatus:   "Checking...", f100Status: "Waiting for aircraft", mfStatus: "Not connected", bridgeStatus: "Bridge stopped",
+		settingsPath:            filepath.Join(dataDir, "settings.json"),
+		compatibilityReportPath: filepath.Join(logDir, "compatibility-report.txt"),
+		logPath:                 filepath.Join(logDir, "bridge-"+time.Now().Format("2006-01-02")+".log"),
+		msfsStatus:              "Checking...", aircraftStatus: "Waiting for aircraft", mfStatus: "Not connected", bridgeStatus: "Bridge stopped",
 	}
 	e.loadProfiles()
-	// Preserve settings from the pre-OpenAvionicsBridge builds on first launch.
 	if _, err := os.Stat(e.settingsPath); os.IsNotExist(err) {
 		legacy := filepath.Join(local, "F100WinCtrlBridge", "settings.json")
 		if b, readErr := os.ReadFile(legacy); readErr == nil {
@@ -143,10 +109,12 @@ func (e *bridgeEngine) loadProfiles() {
 	if err != nil {
 		return
 	}
-	var pf profileFile
-	if json.Unmarshal(b, &pf) == nil && len(pf.Profiles) > 0 {
-		e.profiles = pf.Profiles
+	profiles, err := mergeProfileJSON(e.profiles, b)
+	if err != nil {
+		e.log("WARN", "External profiles.json ignored: "+err.Error())
+		return
 	}
+	e.profiles = profiles
 }
 func (e *bridgeEngine) loadSettings() {
 	b, err := os.ReadFile(e.settingsPath)
@@ -221,7 +189,7 @@ func (e *bridgeEngine) setShowPreview(v bool) {
 func (e *bridgeEngine) snapshot() statusSnapshot {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	return statusSnapshot{MSFS: e.msfsStatus, F100: e.f100Status, MobiFlight: e.mfStatus, Bridge: e.bridgeStatus, Build: e.buildStatus, Error: e.errorText, Preview: e.preview, Logs: strings.Join(e.logs, "\r\n"), Requested: e.requested, CDU: e.cdu, AutoStart: e.autoStart, ShowPreview: e.showPreview}
+	return statusSnapshot{MSFS: e.msfsStatus, Aircraft: e.aircraftStatus, MobiFlight: e.mfStatus, Bridge: e.bridgeStatus, Build: e.buildStatus, Error: e.errorText, Preview: e.preview, Logs: strings.Join(e.logs, "\r\n"), Requested: e.requested, CDU: e.cdu, AutoStart: e.autoStart, ShowPreview: e.showPreview}
 }
 
 func (e *bridgeEngine) Stop() {
@@ -271,8 +239,6 @@ func (e *bridgeEngine) step() {
 	pid := e.pid
 	e.mu.Unlock()
 
-	// If the user stopped the bridge, detach on the worker goroutine. This keeps
-	// Close/Stop actions out of the Win32 UI thread.
 	if !requested && hasHandle {
 		e.closeResources()
 		hasHandle = false
@@ -281,15 +247,11 @@ func (e *bridgeEngine) step() {
 
 	var p *winProcess
 	if hasHandle {
-		// Once attached, ReadProcessMemory is the cheapest liveness check. Avoid a
-		// full system process snapshot four times per second.
 		p = &winProcess{PID: pid, Name: "FlightSimulator2024.exe"}
 		e.mu.Lock()
 		e.msfsStatus = fmt.Sprintf("Running (PID %d)", pid)
 		e.mu.Unlock()
 	} else {
-		// Process/module discovery is intentionally throttled. The display itself
-		// still refreshes at 10 Hz after attachment.
 		if time.Since(e.lastDetect) < time.Second {
 			return
 		}
@@ -309,7 +271,7 @@ func (e *bridgeEngine) step() {
 		if !requested && auto && p != nil {
 			e.requested = true
 			requested = true
-			e.bridgeStatus = "Waiting for F100"
+			e.bridgeStatus = "Waiting for supported aircraft"
 		}
 		e.mu.Unlock()
 	}
@@ -318,7 +280,7 @@ func (e *bridgeEngine) step() {
 		return
 	}
 	if p == nil {
-		e.setStatus("Waiting for aircraft", "Waiting", "Waiting for F100", "")
+		e.setStatus("Waiting for aircraft", "Waiting", "Waiting for supported aircraft", "")
 		return
 	}
 
@@ -378,8 +340,6 @@ func (e *bridgeEngine) step() {
 		}
 	}
 
-	// Repeat the current frame every two seconds as a lightweight health check.
-	// Unlike the old ping loop this uses the exact message MobiFlight expects.
 	if ws != nil && ws.Alive() && (payload != last || time.Since(lastSend) >= 2*time.Second) {
 		if err := ws.SendText(payload); err != nil {
 			e.log("WARN", "WinCtrl WebSocket lost: "+err.Error())
@@ -400,9 +360,9 @@ func (e *bridgeEngine) step() {
 	}
 }
 
-func (e *bridgeEngine) setStatus(f100, mf, bridge, build string) {
+func (e *bridgeEngine) setStatus(aircraft, mf, bridge, build string) {
 	e.mu.Lock()
-	e.f100Status = f100
+	e.aircraftStatus = aircraft
 	e.mfStatus = mf
 	e.bridgeStatus = bridge
 	e.buildStatus = build
@@ -424,89 +384,106 @@ func (e *bridgeEngine) attach(p *winProcess) error {
 	if err != nil {
 		return err
 	}
-	var candidate *winModule
-	var prof *buildProfile
-	var mismatch string
-	for pi := range e.profiles {
-		pr := &e.profiles[pi]
-		for mi := range mods {
-			m := &mods[mi]
-			for _, n := range pr.ModuleNames {
-				if strings.EqualFold(m.Name, n) {
-					hash, ok := e.hashCache[m.Path]
-					if !ok {
-						h, er := sha256File(m.Path)
-						if er != nil {
-							return fmt.Errorf("F100 module found but build could not be verified: %v", er)
-						}
-						hash = h
-						e.hashCache[m.Path] = h
-					}
-					if !strings.EqualFold(hash, pr.ModuleSHA256) {
-						mismatch = hash
-						continue
-					}
-					cp := *m
-					candidate = &cp
-					prof = pr
-					break
-				}
-			}
-			if candidate != nil {
-				break
-			}
-		}
-		if candidate != nil {
-			break
-		}
-	}
-	if candidate == nil {
-		e.mu.Lock()
-		e.f100Status = "F100 build not detected / unsupported"
-		e.mfStatus = "Waiting"
-		e.bridgeStatus = "Waiting for supported F100"
-		if mismatch != "" {
-			e.buildStatus = "Unsupported module SHA256: " + mismatch
-		} else {
-			e.buildStatus = ""
-		}
-		e.mu.Unlock()
-		return nil
-	}
 	h, err := openReadProcess(p.PID)
 	if err != nil {
 		return err
 	}
-	linear64, err := h.ReadU64(candidate.Base + uintptr(prof.LinearMemoryExportRVA))
-	if err != nil {
-		h.Close()
-		return err
+
+	var closest string
+	for pi := range e.profiles {
+		pr := &e.profiles[pi]
+		adapter := e.adapters[pr.Adapter]
+		if adapter == nil {
+			continue
+		}
+		att, diagnostic, er := adapter.TryAttach(h, pr, mods)
+		if er != nil {
+			h.Close()
+			return er
+		}
+		if diagnostic != "" {
+			closest = diagnostic
+		}
+		if att == nil {
+			continue
+		}
+
+		e.mu.Lock()
+		cdu := e.cdu
+		layout := pr.Captain
+		if cdu == "copilot" {
+			layout = pr.Copilot
+		}
+		e.handle = h
+		e.pid = p.PID
+		e.mod = att.Module
+		e.profile = pr
+		e.layout = layout
+		e.linear = att.Linear
+		e.aircraftStatus = "Supported aircraft detected"
+		if att.KnownHash {
+			e.buildStatus = "Verified build · " + pr.DisplayName
+		} else {
+			e.buildStatus = "Runtime validated · " + pr.DisplayName
+		}
+		e.bridgeStatus = "Bridge running"
+		e.errorText = ""
+		e.mu.Unlock()
+
+		hashText := att.ModuleHash
+		if hashText == "" {
+			hashText = "unavailable"
+		}
+		report := fmt.Sprintf(
+			"OpenAvionicsBridge compatibility report\r\n"+
+				"Version: %s\r\n"+
+				"Profile: %s\r\n"+
+				"Adapter: %s\r\n"+
+				"MSFS PID: %d\r\n"+
+				"Module: %s\r\n"+
+				"Module path: %s\r\n"+
+				"Module SHA256: %s\r\n"+
+				"Known hash: %t\r\n"+
+				"Linear-memory export: %s\r\n"+
+				"Linear-memory export RVA: 0x%X\r\n"+
+				"Linear memory: 0x%X\r\n"+
+				"Validation: %s\r\n",
+			appVersion, pr.DisplayName, pr.Adapter, p.PID, att.Module.Name, att.Module.Path,
+			hashText, att.KnownHash, att.LinearExport, att.LinearRVA, att.Linear, att.ValidationMsg,
+		)
+		e.writeCompatibilityReport(report)
+		e.log("INFO", fmt.Sprintf("Attached to MSFS PID %d; profile %s; module %s; knownHash=%t; linear memory 0x%X; CDU %s", p.PID, pr.ID, att.Module.Name, att.KnownHash, att.Linear, cdu))
+		return nil
 	}
-	if linear64 < 0x10000 {
-		h.Close()
-		return fmt.Errorf("Implausible WASM linear-memory pointer 0x%X", linear64)
-	}
+
+	h.Close()
 	e.mu.Lock()
-	cdu := e.cdu
-	layout := prof.Captain
-	if cdu == "copilot" {
-		layout = prof.Copilot
+	e.aircraftStatus = "No compatible aircraft detected"
+	e.mfStatus = "Waiting"
+	e.bridgeStatus = "Waiting for supported aircraft"
+	if closest != "" {
+		e.buildStatus = closest
+	} else {
+		e.buildStatus = "Scanning aircraft adapters by runtime signature"
 	}
-	e.handle = h
-	e.pid = p.PID
-	e.mod = *candidate
-	e.profile = prof
-	e.layout = layout
-	e.linear = uintptr(linear64)
-	e.f100Status = "Supported F100 build detected"
-	e.buildStatus = prof.DisplayName
-	e.bridgeStatus = "Bridge running"
-	e.errorText = ""
 	e.mu.Unlock()
-	e.log("INFO", fmt.Sprintf("Attached to MSFS PID %d; module %s; linear memory 0x%X; CDU %s", p.PID, candidate.Name, linear64, cdu))
+	if closest != "" {
+		e.writeCompatibilityReport("OpenAvionicsBridge compatibility report\r\nVersion: " + appVersion + "\r\nStatus: candidate rejected\r\nReason: " + closest + "\r\n")
+	}
 	return nil
 }
 
+func (e *bridgeEngine) writeCompatibilityReport(report string) {
+	e.mu.Lock()
+	if report == e.lastCompatibilityReport {
+		e.mu.Unlock()
+		return
+	}
+	e.lastCompatibilityReport = report
+	path := e.compatibilityReportPath
+	e.mu.Unlock()
+	_ = os.WriteFile(path, []byte(report), 0644)
+}
 func (e *bridgeEngine) readFrame() (displayFrame, error) {
 	e.mu.Lock()
 	h := e.handle
