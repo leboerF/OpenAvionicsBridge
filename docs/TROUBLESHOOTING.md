@@ -1,6 +1,6 @@
 # Troubleshooting
 
-This page covers common OpenAvionicsBridge 1.0.0-rc4 problems.
+This page covers common OpenAvionicsBridge 1.0.0 problems.
 
 ## MSFS shows "Not running"
 
@@ -41,7 +41,7 @@ If the problem remains, include the compatibility report and bridge log in a Git
 
 ## The DLL filename is different from the development system
 
-That alone should no longer be a problem in rc3.
+That alone should no longer be a problem in 1.0.0.
 
 The current WASM adapter does not require one exact generated DLL filename. Module names are only scanning hints.
 
@@ -145,9 +145,9 @@ If the report contains a personal installation path, you may redact that path be
 
 ## Use Test display to isolate the problem
 
-In rc4, stop the live bridge and use **Test display** before investigating aircraft memory.
+In 1.0.0, stop the live bridge and use **Test display** before investigating aircraft memory.
 
-If the WinWing MCDU displays the rc4 test pattern, the local MobiFlight/WebSocket/hardware path is working and the problem is more likely to be aircraft detection, build compatibility or CDU memory reconstruction.
+If the WinWing MCDU displays the 1.0.0 test pattern, the local MobiFlight/WebSocket/hardware path is working and the problem is more likely to be aircraft detection, build compatibility or CDU memory reconstruction.
 
 If the test pattern does not appear, solve the MobiFlight/WinWing connection problem first.
 

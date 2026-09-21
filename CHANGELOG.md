@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.0 — 2026-09-21
+
+First stable public release.
+
+- Promoted the F70/F100 bridge from release-candidate testing to the 1.0.0 stable line.
+- Confirmed Just Flight F70 attachment and CDU output with the shared 1.3-compatible profile.
+- Retains tested Just Flight F100 support for the analyzed 1.3-compatible layout.
+- Confirmed MobiFlight reconnect and aircraft reload/re-attachment behavior during release testing.
+- Confirmed the hardware Test display and Copy diagnostics workflows.
+- Fixed live-preview repaint artifacts that could leave text from previous CDU pages visible.
+- Retains portable WASM runtime detection, dynamic linear-memory export resolution and runtime CDU-memory validation.
+- Includes Captain/First Officer output selection, compatibility reports, single-instance protection and update checking.
+- Release remains unsigned; Windows SmartScreen may show a reputation warning on new systems.
+
 ## 1.0.0-rc4 — 2026-09-21
 
 Quality-of-life release candidate for public testing.

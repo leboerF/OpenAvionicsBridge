@@ -4,7 +4,7 @@ Welcome to the OpenAvionicsBridge technical documentation.
 
 OpenAvionicsBridge is a Windows bridge for Microsoft Flight Simulator that reads avionics display data from supported aircraft, converts it into a normalized CDU/MCDU representation, and forwards that data to external cockpit hardware.
 
-The current public release candidate is **1.0.0-rc4**.
+The current stable release is **1.0.0**.
 
 ## Current implementation
 
@@ -46,9 +46,6 @@ For the F70/F100 implementation, the display source is the aircraft WASM runtime
 - [Technical Architecture](TECHNICAL-ARCHITECTURE.md)  
   Detailed explanation of process discovery, PE export scanning, WASM linear memory, CDU reconstruction and WebSocket serialization.
 
-- [Architecture Overview](ARCHITECTURE.md)  
-  High-level separation between simulator access, aircraft adapters, profiles, the normalized display model and output transports.
-
 - [Adding Aircraft Support](ADDING-AIRCRAFT.md)  
   How to add another build, another aircraft using the existing WASM adapter, or a completely new acquisition adapter.
 
@@ -57,7 +54,7 @@ For the F70/F100 implementation, the display source is the aircraft WASM runtime
 | Aircraft | Simulator | Status |
 | --- | --- | --- |
 | Just Flight F100 Professional | MSFS 2024 | Verified with the analyzed 1.3-compatible layout |
-| Just Flight F70 Professional | MSFS 2024 | Uses the same profile; final hardware verification is pending |
+| Just Flight F70 Professional | MSFS 2024 | Tested with the shared 1.3-compatible layout |
 
 Support is build-specific. If an aircraft update changes the CDU memory layout, a new or updated profile may be required.
 
@@ -74,12 +71,12 @@ OpenAvionicsBridge is designed around the following principles:
 
 ## Project status
 
-OpenAvionicsBridge is currently in release-candidate testing. rc4 retains the portable runtime detection from rc3 and adds tester-focused quality-of-life features: direct diagnostics/report access, a hardware test display, single-instance protection, clearer profile/build status, and an automatic GitHub release update check.
+OpenAvionicsBridge 1.0.0 is the first stable public release. It retains the portable runtime detection developed during release-candidate testing and includes direct diagnostics/report access, a hardware test display, single-instance protection, clearer profile/build status, reconnect handling, and an automatic update check.
 
 © 2026 leboerF
 
 
-## rc4 quality-of-life features
+## 1.0.0 quality-of-life features
 
 - **Test display** sends a deterministic 24 × 14 pattern directly to the selected MobiFlight/WinWing endpoint without MSFS.
 - **Report** opens the latest compatibility report.

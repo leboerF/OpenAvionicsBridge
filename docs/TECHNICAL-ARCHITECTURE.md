@@ -2,9 +2,9 @@
 
 > **Wiki navigation:** [Home](WIKI-HOME.md) · [Quick Start](INSTALLATION-AND-QUICK-START.md) · [Compatibility](COMPATIBILITY-AND-TESTING.md) · [Troubleshooting](TROUBLESHOOTING.md) · [Adding Aircraft](ADDING-AIRCRAFT.md)
 
-> Version scope: **OpenAvionicsBridge 1.0.0-rc4**. This page describes the implementation currently present in the `main` branch.
+> Version scope: **OpenAvionicsBridge 1.0.0**. This page describes the implementation currently present in the `main` branch.
 
-This document describes the current `1.0.0-rc4` data path in enough detail for developers who want to understand, review, or extend OpenAvionicsBridge.
+This document describes the current `1.0.0` data path in enough detail for developers who want to understand, review, or extend OpenAvionicsBridge.
 
 ## Overview
 
@@ -52,7 +52,7 @@ No write-capable process right is requested.
 
 ## 2. Aircraft runtime-module discovery
 
-The Fokker aircraft uses a WASM module which MSFS exposes at runtime through a generated native DLL. A generated DLL filename is not treated as a stable aircraft identifier in rc3.
+The Fokker aircraft uses a WASM module which MSFS exposes at runtime through a generated native DLL. A generated DLL filename is not treated as a stable aircraft identifier in 1.0.0.
 
 The adapter receives the complete loaded-module list. Known filenames in the aircraft profile are used only to prioritize scanning.
 
@@ -77,7 +77,7 @@ This removes the dependency on one particular generated DLL filename.
 
 ## 3. Resolving WASM linear memory
 
-The export table provides the RVA of the exported `*_WASM_linearmemory0` variable. rc3 resolves this RVA at runtime; it is no longer a fixed profile value.
+The export table provides the RVA of the exported `*_WASM_linearmemory0` variable. Version 1.0.0 resolves this RVA at runtime; it is not a fixed profile value.
 
 The bridge then reads the 64-bit pointer stored at:
 
@@ -258,12 +258,11 @@ This is the primary extension point for future aircraft support.
 
 ## 11. Current limitations
 
-The rc3 architecture is intentionally more general than the first Fokker-only development builds, but some components are still specific to the current integration:
+The 1.0.0 architecture is intentionally more general than the first Fokker-only development builds, but some components are still specific to the current integration:
 
 - only one acquisition adapter is currently implemented: `wasm-linear-memory-cdu-v1`,
 - the normalized display model is currently a 24 × 14 character CDU,
 - the only public output transport is the MobiFlight/WinWing WebSocket path,
-- build profiles still contain aircraft-specific memory offsets,
-- F70 hardware verification is still pending.
+- build profiles still contain aircraft-specific memory offsets.
 
 These are implementation limits, not architectural requirements. New adapters and output transports can be added without reverting to a fixed generated DLL filename or putting vendor-specific logic back into the core engine.

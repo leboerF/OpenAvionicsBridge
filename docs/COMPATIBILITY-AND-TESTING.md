@@ -1,6 +1,6 @@
 # Compatibility and Testing
 
-This page explains how OpenAvionicsBridge 1.0.0-rc4 decides whether an aircraft runtime is compatible.
+This page explains how OpenAvionicsBridge 1.0.0 decides whether an aircraft runtime is compatible.
 
 ## Supported aircraft
 
@@ -21,17 +21,17 @@ Current status:
 | Aircraft | Status |
 | --- | --- |
 | Just Flight F100 Professional | Verified on the development system |
-| Just Flight F70 Professional | Same profile; final hardware verification pending |
+| Just Flight F70 Professional | Tested with the shared 1.3-compatible profile |
 
 The profile is build-specific. A future aircraft update can require a new profile if the CDU memory layout changes.
 
-## Why rc3 does not require one fixed DLL filename
+## Why 1.0.0 does not require one fixed DLL filename
 
 During development, the aircraft WASM runtime was exposed by MSFS using a generated native DLL name.
 
 A public build must not assume that the generated filename is identical on every system.
 
-In rc3:
+In 1.0.0:
 
 - configured module names are only **discovery hints**,
 - all loaded MSFS modules can be inspected,

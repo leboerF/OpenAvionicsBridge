@@ -1,6 +1,6 @@
 # Installation and Quick Start
 
-> Current version: **OpenAvionicsBridge 1.0.0-rc4**
+> Current version: **OpenAvionicsBridge 1.0.0**
 
 This page describes the normal setup for the current WinWing/MobiFlight output path.
 
@@ -11,7 +11,7 @@ This page describes the normal setup for the current WinWing/MobiFlight output p
 - a supported aircraft/build
 - MobiFlight running locally
 - a WinWing MCDU configured and available in MobiFlight
-- OpenAvionicsBridge 1.0.0-rc4
+- OpenAvionicsBridge 1.0.0
 
 No separate Go runtime is required for the release executable.
 
@@ -28,7 +28,7 @@ No separate Go runtime is required for the release executable.
 
 ## GUI status fields
 
-The current rc3 GUI reports four main states.
+The 1.0.0 GUI reports four main states.
 
 ### Microsoft Flight Simulator
 
@@ -137,7 +137,7 @@ This is independent of the embedded icon and VERSIONINFO metadata.
 
 ## What the bridge does not do
 
-The current rc3 build does not:
+The 1.0.0 build does not:
 
 - modify aircraft package files,
 - write into MSFS process memory,
@@ -149,7 +149,7 @@ The current rc3 build does not:
 The current public output path is WinWing MCDU through MobiFlight.
 
 
-## rc4 diagnostic controls
+## 1.0.0 diagnostic controls
 
 ### Test display
 
