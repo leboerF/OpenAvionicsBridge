@@ -64,6 +64,7 @@ const (
 	dtSingleLine = 0x00000020
 
 	transparent = 1
+	opaque      = 2
 	psSolid     = 0
 	odsSelected = 0x0001
 	odsDisabled = 0x0004
@@ -420,11 +421,16 @@ func wndProc(hwnd uintptr, m uint32, wparam, lparam uintptr) uintptr {
 			hdc := wparam
 			ctrl := lparam
 			if ctrl == gui.preview {
+				// The preview is updated frequently with WM_SETTEXT. Force an opaque
+				// background so glyphs from the previous CDU page cannot remain
+				// visible underneath the newly painted text.
+				pSetBkMode.Call(hdc, opaque)
 				pSetBkColor.Call(hdc, uintptr(clrPreviewBG))
 				pSetTextColor.Call(hdc, uintptr(clrPreviewFG))
 				return gui.brushPreview
 			}
 			if ctrl == gui.logBox {
+				pSetBkMode.Call(hdc, opaque)
 				pSetBkColor.Call(hdc, uintptr(clrLogBG))
 				pSetTextColor.Call(hdc, uintptr(clrText))
 				return gui.brushLog
@@ -576,9 +582,14 @@ func updateGUI() {
 		old := strings.Join(gui.last.Preview[:], "\r\n")
 		if p != old || s.ShowPreview != gui.last.ShowPreview {
 			setText(gui.preview, p)
+			// A multiline EDIT control does not reliably erase every old glyph
+			// when its contents are replaced rapidly. Explicitly invalidate the
+			// complete client area and request background erasure.
+			pInvalidateRect.Call(gui.preview, 0, 1)
 		}
 	} else if gui.last.ShowPreview {
 		setText(gui.preview, "Live preview disabled")
+		pInvalidateRect.Call(gui.preview, 0, 1)
 	}
 	if s.Requested != gui.last.Requested || s.TestRunning != gui.last.TestRunning {
 		idle := !s.Requested && !s.TestRunning
