@@ -18,18 +18,22 @@ type appSettings struct {
 }
 
 type statusSnapshot struct {
-	MSFS        string
-	Aircraft    string
-	MobiFlight  string
-	Bridge      string
-	Build       string
-	Error       string
-	Preview     [14]string
-	Logs        string
-	Requested   bool
-	CDU         string
-	AutoStart   bool
-	ShowPreview bool
+	MSFS           string
+	Aircraft       string
+	MobiFlight     string
+	Bridge         string
+	Build          string
+	Update         string
+	UpdateURL      string
+	Error          string
+	Preview        [14]string
+	Logs           string
+	Requested      bool
+	CDU            string
+	AutoStart      bool
+	ShowPreview    bool
+	TestRunning    bool
+	UpdateChecking bool
 }
 
 type bridgeEngine struct {
@@ -44,6 +48,8 @@ type bridgeEngine struct {
 	adapters    map[string]aircraftAdapter
 
 	msfsStatus, aircraftStatus, mfStatus, bridgeStatus, buildStatus, errorText string
+	updateStatus, updateURL                                                    string
+	updateChecking, testRunning                                                bool
 	preview                                                                    [14]string
 	logs                                                                       []string
 
@@ -88,6 +94,8 @@ func newBridgeEngine() (*bridgeEngine, error) {
 		compatibilityReportPath: filepath.Join(logDir, "compatibility-report.txt"),
 		logPath:                 filepath.Join(logDir, "bridge-"+time.Now().Format("2006-01-02")+".log"),
 		msfsStatus:              "Checking...", aircraftStatus: "Waiting for aircraft", mfStatus: "Not connected", bridgeStatus: "Bridge stopped",
+		buildStatus:             "Profile: not attached\r\nBuild: waiting for compatible aircraft",
+		updateStatus:            "Checking for updates...",
 	}
 	e.loadProfiles()
 	if _, err := os.Stat(e.settingsPath); os.IsNotExist(err) {
@@ -100,6 +108,7 @@ func newBridgeEngine() (*bridgeEngine, error) {
 	e.requested = e.autoStart
 	e.log("INFO", "Starting "+appName+" "+appVersion)
 	go e.loop()
+	e.checkUpdates(false)
 	return e, nil
 }
 
@@ -189,7 +198,141 @@ func (e *bridgeEngine) setShowPreview(v bool) {
 func (e *bridgeEngine) snapshot() statusSnapshot {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	return statusSnapshot{MSFS: e.msfsStatus, Aircraft: e.aircraftStatus, MobiFlight: e.mfStatus, Bridge: e.bridgeStatus, Build: e.buildStatus, Error: e.errorText, Preview: e.preview, Logs: strings.Join(e.logs, "\r\n"), Requested: e.requested, CDU: e.cdu, AutoStart: e.autoStart, ShowPreview: e.showPreview}
+	return statusSnapshot{
+		MSFS: e.msfsStatus, Aircraft: e.aircraftStatus, MobiFlight: e.mfStatus, Bridge: e.bridgeStatus,
+		Build: e.buildStatus, Update: e.updateStatus, UpdateURL: e.updateURL, Error: e.errorText,
+		Preview: e.preview, Logs: strings.Join(e.logs, "\r\n"), Requested: e.requested, CDU: e.cdu,
+		AutoStart: e.autoStart, ShowPreview: e.showPreview, TestRunning: e.testRunning, UpdateChecking: e.updateChecking,
+	}
+}
+
+func (e *bridgeEngine) diagnosticsText() string {
+	s := e.snapshot()
+	var b strings.Builder
+	fmt.Fprintf(&b, "OpenAvionicsBridge diagnostics\r\n")
+	fmt.Fprintf(&b, "Version: %s\r\n", appVersion)
+	fmt.Fprintf(&b, "MSFS: %s\r\n", s.MSFS)
+	fmt.Fprintf(&b, "Aircraft: %s\r\n", s.Aircraft)
+	fmt.Fprintf(&b, "MobiFlight: %s\r\n", s.MobiFlight)
+	fmt.Fprintf(&b, "Bridge: %s\r\n", s.Bridge)
+	fmt.Fprintf(&b, "CDU: %s\r\n", s.CDU)
+	fmt.Fprintf(&b, "Update: %s\r\n", s.Update)
+	b.WriteString(s.Build)
+	b.WriteString("\r\n")
+	if report, err := os.ReadFile(e.compatibilityReportPath); err == nil && len(report) > 0 {
+		b.WriteString("\r\nCompatibility report\r\n--------------------\r\n")
+		b.Write(report)
+	}
+	return b.String()
+}
+
+func (e *bridgeEngine) checkUpdates(manual bool) {
+	e.mu.Lock()
+	if e.updateChecking {
+		e.mu.Unlock()
+		return
+	}
+	e.updateChecking = true
+	e.updateStatus = "Checking for updates..."
+	e.updateURL = ""
+	e.mu.Unlock()
+
+	go func() {
+		result, err := queryUpdates(appVersion)
+		e.mu.Lock()
+		e.updateChecking = false
+		if err != nil {
+			if appVersion == "dev" {
+				e.updateStatus = "Development build · update check disabled"
+			} else {
+				e.updateStatus = "Update check unavailable"
+			}
+			e.updateURL = ""
+			e.mu.Unlock()
+			if manual {
+				e.log("WARN", "Update check failed: "+err.Error())
+			}
+			return
+		}
+		if result.Available {
+			e.updateStatus = "Update " + result.Version + " available · click to open"
+			e.updateURL = result.URL
+		} else {
+			e.updateStatus = "Up to date · click to recheck"
+			e.updateURL = ""
+		}
+		e.mu.Unlock()
+	}()
+}
+
+func (e *bridgeEngine) startTestDisplay() {
+	e.mu.Lock()
+	if e.requested || e.testRunning {
+		e.mu.Unlock()
+		return
+	}
+	var layout cduLayout
+	if e.profile != nil {
+		layout = e.profile.Captain
+		if e.cdu == "copilot" {
+			layout = e.profile.Copilot
+		}
+	} else if len(e.profiles) > 0 {
+		layout = e.profiles[0].Captain
+		if e.cdu == "copilot" {
+			layout = e.profiles[0].Copilot
+		}
+	}
+	if strings.TrimSpace(layout.URL) == "" {
+		e.mu.Unlock()
+		e.log("ERROR", "No output endpoint is available for the test display")
+		return
+	}
+	cdu := e.cdu
+	e.testRunning = true
+	e.mfStatus = "Testing MobiFlight..."
+	e.errorText = ""
+	e.mu.Unlock()
+
+	go func() {
+		defer func() {
+			e.mu.Lock()
+			e.testRunning = false
+			e.mu.Unlock()
+		}()
+		ws, err := dialWebSocket(layout.URL, 2500*time.Millisecond)
+		if err != nil {
+			e.mu.Lock()
+			e.mfStatus = "Test display failed"
+			e.errorText = "Test display: " + err.Error()
+			e.mu.Unlock()
+			e.log("WARN", "Test display failed: "+err.Error())
+			return
+		}
+		defer ws.Close()
+		frame := testDisplayFrame(cdu)
+		if err := ws.SendText(frameJSON(frame)); err != nil {
+			e.mu.Lock()
+			e.mfStatus = "Test display failed"
+			e.errorText = "Test display: " + err.Error()
+			e.mu.Unlock()
+			e.log("WARN", "Test display send failed: "+err.Error())
+			return
+		}
+		e.mu.Lock()
+		e.preview = frame.Rows
+		e.mfStatus = "Test display active"
+		e.mu.Unlock()
+		e.log("INFO", "Test display sent to "+layout.URL)
+		time.Sleep(2 * time.Second)
+		if ws.Alive() {
+			_ = ws.SendText(frameJSON(frame))
+		}
+		time.Sleep(2 * time.Second)
+		e.mu.Lock()
+		e.mfStatus = "Test display finished"
+		e.mu.Unlock()
+	}()
 }
 
 func (e *bridgeEngine) Stop() {
@@ -421,10 +564,17 @@ func (e *bridgeEngine) attach(p *winProcess) error {
 		e.layout = layout
 		e.linear = att.Linear
 		e.aircraftStatus = "Supported aircraft detected"
+		shortHash := att.ModuleHash
+		if len(shortHash) > 12 {
+			shortHash = shortHash[:12]
+		}
+		buildKind := "Runtime validated"
 		if att.KnownHash {
-			e.buildStatus = "Verified build · " + pr.DisplayName
-		} else {
-			e.buildStatus = "Runtime validated · " + pr.DisplayName
+			buildKind = "Verified"
+		}
+		e.buildStatus = "Profile: " + pr.DisplayName + " · " + pr.Adapter + "\r\nBuild: " + buildKind
+		if shortHash != "" {
+			e.buildStatus += " · SHA256 " + shortHash + "…"
 		}
 		e.bridgeStatus = "Bridge running"
 		e.errorText = ""
@@ -462,9 +612,9 @@ func (e *bridgeEngine) attach(p *winProcess) error {
 	e.mfStatus = "Waiting"
 	e.bridgeStatus = "Waiting for supported aircraft"
 	if closest != "" {
-		e.buildStatus = closest
+		e.buildStatus = "Profile: candidate rejected\r\nBuild: " + closest
 	} else {
-		e.buildStatus = "Scanning aircraft adapters by runtime signature"
+		e.buildStatus = "Profile: scanning registered profiles\r\nBuild: waiting for a compatible runtime signature"
 	}
 	e.mu.Unlock()
 	if closest != "" {

@@ -141,3 +141,31 @@ func buildDisplay(titleLarge, titleSmall string, labels, large, small [12]string
 	}
 	return out
 }
+
+// testDisplayFrame creates a deterministic hardware test pattern without
+// requiring MSFS. It deliberately exercises both font sizes and the symbols
+// currently used by the F70/F100 renderer.
+func testDisplayFrame(cdu string) displayFrame {
+	var labels, large, small [12]string
+	labels[0] = "MOBIFLIGHT"
+	labels[6] = "WINWING"
+	large[0] = "TEST DISPLAY"
+	if cdu == "copilot" {
+		large[6] = "FIRST OFFICER"
+	} else {
+		large[6] = "CAPTAIN"
+	}
+	labels[1] = "FONT CHECK"
+	large[1] = "LARGE 123"
+	small[7] = "small abc"
+	labels[2] = "SYMBOL CHECK"
+	large[2] = "→ ↑ ↓ ☐ °"
+	large[8] = "123456"
+	labels[3] = "CONNECTION"
+	large[3] = "WEBSOCKET OK"
+	labels[4] = "FRAME"
+	large[4] = "24 X 14"
+	labels[5] = "OPENAVIONICSBRIDGE"
+	large[5] = "RC4 TEST"
+	return buildDisplay("OPENAVIONICSBRIDGE RC4", "", labels, large, small, "TEST DISPLAY ACTIVE")
+}

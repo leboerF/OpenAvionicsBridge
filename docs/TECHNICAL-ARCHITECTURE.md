@@ -2,9 +2,9 @@
 
 > **Wiki navigation:** [Home](WIKI-HOME.md) · [Quick Start](INSTALLATION-AND-QUICK-START.md) · [Compatibility](COMPATIBILITY-AND-TESTING.md) · [Troubleshooting](TROUBLESHOOTING.md) · [Adding Aircraft](ADDING-AIRCRAFT.md)
 
-> Version scope: **OpenAvionicsBridge 1.0.0-rc3**. This page describes the implementation currently present in the `main` branch.
+> Version scope: **OpenAvionicsBridge 1.0.0-rc4**. This page describes the implementation currently present in the `main` branch.
 
-This document describes the current `1.0.0-rc3` data path in enough detail for developers who want to understand, review, or extend OpenAvionicsBridge.
+This document describes the current `1.0.0-rc4` data path in enough detail for developers who want to understand, review, or extend OpenAvionicsBridge.
 
 ## Overview
 

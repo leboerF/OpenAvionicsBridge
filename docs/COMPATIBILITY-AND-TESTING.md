@@ -1,6 +1,6 @@
 # Compatibility and Testing
 
-This page explains how OpenAvionicsBridge 1.0.0-rc3 decides whether an aircraft runtime is compatible.
+This page explains how OpenAvionicsBridge 1.0.0-rc4 decides whether an aircraft runtime is compatible.
 
 ## Supported aircraft
 

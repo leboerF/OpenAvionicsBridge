@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/binary"
+	"strings"
 	"testing"
 )
 
@@ -75,5 +76,27 @@ func TestSquareAlwaysUsesSmallFont(t *testing.T) {
 	base := 2 * 24
 	if f.Cells[base].Size != 0 || f.Cells[base+1].Ch != "☐" || f.Cells[base+1].Size != 1 || f.Cells[base+2].Size != 0 {
 		t.Fatalf("unexpected sizes around square: %#v %#v %#v", f.Cells[base], f.Cells[base+1], f.Cells[base+2])
+	}
+}
+
+func TestTestDisplayFrame(t *testing.T) {
+	f := testDisplayFrame("captain")
+	if len(f.Cells) != 336 {
+		t.Fatalf("cells=%d", len(f.Cells))
+	}
+	if !strings.Contains(f.Rows[2], "TEST DISPLAY") {
+		t.Fatalf("test display row missing: %q", f.Rows[2])
+	}
+	foundSquare := false
+	for _, c := range f.Cells {
+		if c.Ch == "☐" {
+			foundSquare = true
+			if c.Size != 1 {
+				t.Fatalf("test square size=%d, want small", c.Size)
+			}
+		}
+	}
+	if !foundSquare {
+		t.Fatal("test display did not include square glyph")
 	}
 }

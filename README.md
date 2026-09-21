@@ -4,7 +4,7 @@ OpenAvionicsBridge is an open-source Windows bridge for Microsoft Flight Simulat
 
 The first integration targets the **Just Flight F70/F100 Professional for MSFS 2024** and sends the CDU display to **WinWing MCDU hardware through MobiFlight**.
 
-> **Current public release candidate:** `1.0.0-rc3`  
+> **Current public release candidate:** `1.0.0-rc4`  
 > **License:** MIT  
 > **Author:** `leboerF`
 
@@ -21,6 +21,10 @@ The first integration targets the **Just Flight F70/F100 Professional for MSFS 2
 - Known module hashes are recognized, but a different hash can still be accepted after export-signature and memory-layout validation.
 - A compatibility report is written for testers to `%LOCALAPPDATA%\OpenAvionicsBridge\logs\compatibility-report.txt`.
 - Adapter/profile architecture prepared for additional aircraft and manufacturers.
+- One-click diagnostics copy and direct compatibility-report access for tester issues.
+- Hardware **Test display** mode for checking MobiFlight/WinWing without MSFS.
+- Single-instance protection so two bridge processes cannot compete for the same hardware endpoint.
+- Automatic GitHub Releases update check with a clickable status in the application header.
 
 ## Supported aircraft
 
@@ -31,11 +35,11 @@ The first integration targets the **Just Flight F70/F100 Professional for MSFS 2
 
 Aircraft support is build-specific. An aircraft update can require a profile update if its CDU memory layout changes.
 
-## Why rc3 is more portable
+## Portable runtime detection
 
 Early development builds identified the Fokker runtime using one generated DLL name and one SHA-256 value. That was safe for development but too strict for public testing.
 
-`1.0.0-rc3` instead:
+The portable detection model introduced in rc3 is retained in **1.0.0-rc4**:
 
 1. Finds the running Microsoft Flight Simulator process.
 2. Enumerates loaded modules.
@@ -66,6 +70,8 @@ If MSFS is launched as Administrator, OpenAvionicsBridge may also need to be lau
 4. Select **Captain** or **First Officer**.
 5. Start the bridge, or leave automatic connection enabled.
 6. Check the status indicators and CDU preview.
+
+For hardware troubleshooting, stop the live bridge and use **Test display**. This sends a deterministic CDU pattern directly to the selected MobiFlight Captain/First Officer endpoint without requiring MSFS. The **Report** and **Copy diag.** buttons in the Activity section simplify compatibility reports.
 
 Settings and logs are stored below `%LOCALAPPDATA%\OpenAvionicsBridge`. On first launch, the bridge imports existing settings from the older `%LOCALAPPDATA%\F100WinCtrlBridge` directory when available.
 
@@ -116,7 +122,7 @@ The project uses Go and the native Win32 API. There are currently no runtime thi
 ```bash
 python tools/build-windows-resources.py
 GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
-  -ldflags="-s -w -H=windowsgui -X main.appVersion=1.0.0-rc3" \
+  -ldflags="-s -w -H=windowsgui -X main.appVersion=1.0.0-rc4" \
   -o OpenAvionicsBridge.exe .
 ```
 
@@ -134,6 +140,10 @@ A Windows-target compile check can be performed from another OS with:
 GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go test -c .
 ```
 
+## Update check
+
+OpenAvionicsBridge rc4 performs a lightweight update check against the public GitHub Releases API at startup. It sends no simulator, aircraft, hardware, log, or diagnostic data; it only requests the public releases list for this repository. If the check fails, bridge operation continues normally.
+
 ## Windows SmartScreen and code signing
 
 Release builds are currently unsigned. Windows SmartScreen can therefore show a reputation warning, especially for a new release. Embedded icon and VERSIONINFO metadata do not replace Authenticode code signing.
@@ -142,7 +152,7 @@ Release builds are currently unsigned. Windows SmartScreen can therefore show a 
 
 OpenAvionicsBridge is intended to become a common bridge for several MSFS aircraft rather than an F70/F100-only utility. The normalized 24×14 CDU frame is already separated from aircraft discovery, and the aircraft adapter registry provides the boundary for future integrations.
 
-Generic JSON/plain-text output is a planned extension; `1.0.0-rc3` still ships only the MobiFlight/WinWing output transport.
+Generic JSON/plain-text output is a planned extension; `1.0.0-rc4` still ships only the MobiFlight/WinWing output transport.
 
 ## License
 

@@ -1,6 +1,6 @@
 # Troubleshooting
 
-This page covers common OpenAvionicsBridge 1.0.0-rc3 problems.
+This page covers common OpenAvionicsBridge 1.0.0-rc4 problems.
 
 ## MSFS shows "Not running"
 
@@ -141,3 +141,14 @@ Please include:
 - clear reproduction steps.
 
 If the report contains a personal installation path, you may redact that path before posting it publicly.
+
+
+## Use Test display to isolate the problem
+
+In rc4, stop the live bridge and use **Test display** before investigating aircraft memory.
+
+If the WinWing MCDU displays the rc4 test pattern, the local MobiFlight/WebSocket/hardware path is working and the problem is more likely to be aircraft detection, build compatibility or CDU memory reconstruction.
+
+If the test pattern does not appear, solve the MobiFlight/WinWing connection problem first.
+
+The Activity section also provides **Report** and **Copy diag.** shortcuts for collecting useful issue information.

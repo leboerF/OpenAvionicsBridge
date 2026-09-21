@@ -2,7 +2,7 @@
 
 > **Wiki navigation:** [Home](WIKI-HOME.md) · [Quick Start](INSTALLATION-AND-QUICK-START.md) · [Compatibility](COMPATIBILITY-AND-TESTING.md) · [Troubleshooting](TROUBLESHOOTING.md) · [Adding Aircraft](ADDING-AIRCRAFT.md)
 
-> Version scope: **OpenAvionicsBridge 1.0.0-rc3**.
+> Version scope: **OpenAvionicsBridge 1.0.0-rc4**.
 
 OpenAvionicsBridge separates **how display data is acquired** from **how the normalized CDU frame is rendered and transmitted**.
 

@@ -4,7 +4,7 @@ Welcome to the OpenAvionicsBridge technical documentation.
 
 OpenAvionicsBridge is a Windows bridge for Microsoft Flight Simulator that reads avionics display data from supported aircraft, converts it into a normalized CDU/MCDU representation, and forwards that data to external cockpit hardware.
 
-The current public release candidate is **1.0.0-rc3**.
+The current public release candidate is **1.0.0-rc4**.
 
 ## Current implementation
 
@@ -74,6 +74,16 @@ OpenAvionicsBridge is designed around the following principles:
 
 ## Project status
 
-OpenAvionicsBridge is currently in release-candidate testing. The main focus of rc3 is portability across different systems and MSFS runtime-module naming differences.
+OpenAvionicsBridge is currently in release-candidate testing. rc4 retains the portable runtime detection from rc3 and adds tester-focused quality-of-life features: direct diagnostics/report access, a hardware test display, single-instance protection, clearer profile/build status, and an automatic GitHub release update check.
 
 © 2026 leboerF
+
+
+## rc4 quality-of-life features
+
+- **Test display** sends a deterministic 24 × 14 pattern directly to the selected MobiFlight/WinWing endpoint without MSFS.
+- **Report** opens the latest compatibility report.
+- **Copy diag.** copies current status and compatibility data for GitHub issues.
+- A clearer profile/build line shows the active adapter, verification state and short module hash.
+- Single-instance protection prevents two bridge processes from using the same endpoint concurrently.
+- The header performs a lightweight check against the public GitHub Releases API and can open a newer release when available.

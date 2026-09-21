@@ -54,6 +54,7 @@ const (
 	bsAutoCheckBox  = 0x00000003
 	bsOwnerDraw     = 0x0000000B
 	cbsDropDownList = 0x00000003
+	ssNotify         = 0x00000100
 	esMultiline     = 0x0004
 	esAutoVScroll   = 0x0040
 	esReadOnly      = 0x0800
@@ -76,8 +77,12 @@ const (
 	idAuto         = 1002
 	idStart        = 1003
 	idStop         = 1004
-	idPreviewCheck = 1005
-	idOpenLogs     = 1006
+	idPreviewCheck    = 1005
+	idOpenLogs        = 1006
+	idOpenReport      = 1007
+	idCopyDiagnostics = 1008
+	idTestDisplay     = 1009
+	idUpdate          = 1010
 )
 
 var (
@@ -171,9 +176,10 @@ type guiState struct {
 
 	statusMSFS, statusAircraft, statusMF, statusBridge, statusBuild uintptr
 	dotMSFS, dotAircraft, dotMF, dotBridge                          uintptr
-	headerStatus                                                uintptr
-	cdu, auto, start, stop                                      uintptr
-	previewCheck, preview, logBox, errorLabel, openLogs         uintptr
+	headerStatus, updateLabel                                       uintptr
+	cdu, auto, start, stop, testDisplay                             uintptr
+	previewCheck, preview, logBox, errorLabel                       uintptr
+	openLogs, openReport, copyDiagnostics                           uintptr
 
 	font, fontTitle, fontSection, fontLabel, fontSmall, fontMono uintptr
 	brushMain, brushWhite, brushPreview, brushLog                uintptr
@@ -285,10 +291,10 @@ func paintWindow(hwnd uintptr) {
 	fill(hdc, rect{0, 0, cr.Right, 4}, accent)
 	pDeleteObject.Call(accent)
 
-	card(hdc, rect{20, 108, 550, 310})
-	card(hdc, rect{570, 108, 900, 310})
-	card(hdc, rect{20, 330, 590, 655})
-	card(hdc, rect{610, 330, 900, 655})
+	card(hdc, rect{20, 108, 550, 325})
+	card(hdc, rect{570, 108, 900, 325})
+	card(hdc, rect{20, 340, 590, 655})
+	card(hdc, rect{610, 340, 900, 655})
 
 	fill(hdc, rect{0, 670, cr.Right, cr.Bottom}, gui.brushWhite)
 }
@@ -303,7 +309,7 @@ func statusColor(v string, requested bool) uint32 {
 			return clrAmber
 		}
 		return clrGray
-	case strings.Contains(s, "connected"), strings.Contains(s, "running"), strings.Contains(s, "ready"), strings.Contains(s, "compatible"):
+	case strings.Contains(s, "connected"), strings.Contains(s, "running"), strings.Contains(s, "ready"), strings.Contains(s, "compatible"), strings.Contains(s, "test display active"), strings.Contains(s, "test display finished"):
 		return clrGreen
 	case strings.Contains(s, "checking"), strings.Contains(s, "waiting"), strings.Contains(s, "detect"), strings.Contains(s, "connecting"):
 		return clrAmber
@@ -351,6 +357,9 @@ func drawOwnerButton(dis *drawItemStruct) {
 	pDeleteObject.Call(pen)
 
 	font := gui.fontLabel
+	if int(dis.CtlID) == idCopyDiagnostics {
+		font = gui.fontSmall
+	}
 	oldFont, _, _ := pSelectObject.Call(dis.HDC, font)
 	pSetBkMode.Call(dis.HDC, transparent)
 	pSetTextColor.Call(dis.HDC, uintptr(fg))
@@ -361,7 +370,13 @@ func drawOwnerButton(dis *drawItemStruct) {
 	case idStop:
 		caption = "Stop"
 	case idOpenLogs:
-		caption = "Open logs"
+		caption = "Logs"
+	case idOpenReport:
+		caption = "Report"
+	case idCopyDiagnostics:
+		caption = "Copy diag."
+	case idTestDisplay:
+		caption = "Test display"
 	}
 	t := ptr(caption)
 	r := dis.RcItem
@@ -449,7 +464,36 @@ func wndProc(hwnd uintptr, m uint32, wparam, lparam uintptr) uintptr {
 				}
 			case idOpenLogs:
 				if code == bnClicked {
-					openFolder(gui.engine.logDir)
+					openPath(gui.engine.logDir)
+				}
+			case idOpenReport:
+				if code == bnClicked {
+					if _, err := os.Stat(gui.engine.compatibilityReportPath); err == nil {
+						openPath(gui.engine.compatibilityReportPath)
+					} else {
+						gui.engine.log("WARN", "No compatibility report has been created yet")
+					}
+				}
+			case idCopyDiagnostics:
+				if code == bnClicked {
+					if err := copyTextToClipboard(gui.hwnd, gui.engine.diagnosticsText()); err != nil {
+						gui.engine.log("WARN", "Could not copy diagnostics: "+err.Error())
+					} else {
+						gui.engine.log("INFO", "Diagnostics copied to clipboard")
+					}
+				}
+			case idTestDisplay:
+				if code == bnClicked {
+					gui.engine.startTestDisplay()
+				}
+			case idUpdate:
+				if code == bnClicked {
+					s := gui.engine.snapshot()
+					if s.UpdateURL != "" {
+						openPath(s.UpdateURL)
+					} else {
+						gui.engine.checkUpdates(true)
+					}
 				}
 			}
 			return 0
@@ -470,7 +514,7 @@ func wndProc(hwnd uintptr, m uint32, wparam, lparam uintptr) uintptr {
 	return r
 }
 
-func openFolder(path string) {
+func openPath(path string) {
 	verb := ptr("open")
 	file := ptr(path)
 	pShellExecuteW.Call(0, uintptr(unsafe.Pointer(verb)), uintptr(unsafe.Pointer(file)), 0, 0, 1)
@@ -500,6 +544,20 @@ func updateGUI() {
 	if s.Build != gui.last.Build {
 		setText(gui.statusBuild, s.Build)
 	}
+	if s.Update != gui.last.Update {
+		setText(gui.updateLabel, s.Update)
+		updateColor := clrMuted
+		lower := strings.ToLower(s.Update)
+		switch {
+		case strings.Contains(lower, "available") && !strings.Contains(lower, "unavailable"):
+			updateColor = clrAmber
+		case strings.Contains(lower, "up to date"):
+			updateColor = clrGreen
+		case strings.Contains(lower, "checking"):
+			updateColor = clrMuted
+		}
+		setColor(gui.updateLabel, updateColor)
+	}
 	if s.Error != gui.last.Error {
 		setText(gui.errorLabel, s.Error)
 		if s.Error != "" {
@@ -522,12 +580,15 @@ func updateGUI() {
 	} else if gui.last.ShowPreview {
 		setText(gui.preview, "Live preview disabled")
 	}
-	if s.Requested != gui.last.Requested {
-		enable(gui.start, !s.Requested)
+	if s.Requested != gui.last.Requested || s.TestRunning != gui.last.TestRunning {
+		idle := !s.Requested && !s.TestRunning
+		enable(gui.start, idle)
 		enable(gui.stop, s.Requested)
-		enable(gui.cdu, !s.Requested)
+		enable(gui.cdu, idle)
+		enable(gui.testDisplay, idle)
 		pInvalidateRect.Call(gui.start, 0, 1)
 		pInvalidateRect.Call(gui.stop, 0, 1)
+		pInvalidateRect.Call(gui.testDisplay, 0, 1)
 	}
 	if s.CDU != gui.last.CDU {
 		if s.CDU == "copilot" {
@@ -590,8 +651,10 @@ func initGUI(e *bridgeEngine) error {
 	setColor(title, clrText)
 	sub := static("MSFS avionics display bridge  ·  WinWing / MobiFlight", 26, 54, 560, 20, gui.font)
 	setColor(sub, clrMuted)
-	gui.headerStatus = static("BRIDGE STOPPED", 650, 31, 245, 24, gui.fontLabel)
+	gui.headerStatus = static("BRIDGE STOPPED", 650, 24, 245, 24, gui.fontLabel)
 	setColor(gui.headerStatus, clrGray)
+	gui.updateLabel = createControl(0, "STATIC", "Checking for updates...", wsChild|wsVisible|ssNotify, 650, 52, 245, 22, idUpdate, gui.fontSmall)
+	setColor(gui.updateLabel, clrMuted)
 
 	// Status card
 	sec := static("System status", 38, 124, 220, 26, gui.fontSection)
@@ -616,7 +679,7 @@ func initGUI(e *bridgeEngine) error {
 		*row.value = static(row.initial, 300, row.y, 225, 20, gui.font)
 		setColor(*row.value, clrMuted)
 	}
-	gui.statusBuild = static("", 66, 292, 455, 16, gui.fontSmall)
+	gui.statusBuild = static("", 66, 286, 455, 34, gui.fontSmall)
 	setColor(gui.statusBuild, clrMuted)
 
 	// Controls card
@@ -628,8 +691,9 @@ func initGUI(e *bridgeEngine) error {
 	send(gui.cdu, cbAddString, 0, uintptr(unsafe.Pointer(ptr("Captain"))))
 	send(gui.cdu, cbAddString, 0, uintptr(unsafe.Pointer(ptr("First Officer"))))
 	gui.auto = createControl(0, "BUTTON", "Connect automatically when aircraft is loaded", wsChild|wsVisible|wsTabStop|bsAutoCheckBox, 590, 228, 288, 25, idAuto, gui.font)
-	gui.start = createControl(0, "BUTTON", "Start bridge", wsChild|wsVisible|wsTabStop|bsOwnerDraw, 590, 265, 137, 34, idStart, gui.fontLabel)
-	gui.stop = createControl(0, "BUTTON", "Stop", wsChild|wsVisible|wsTabStop|bsOwnerDraw, 741, 265, 137, 34, idStop, gui.fontLabel)
+	gui.start = createControl(0, "BUTTON", "Start bridge", wsChild|wsVisible|wsTabStop|bsOwnerDraw, 590, 265, 91, 34, idStart, gui.fontLabel)
+	gui.stop = createControl(0, "BUTTON", "Stop", wsChild|wsVisible|wsTabStop|bsOwnerDraw, 689, 265, 90, 34, idStop, gui.fontLabel)
+	gui.testDisplay = createControl(0, "BUTTON", "Test display", wsChild|wsVisible|wsTabStop|bsOwnerDraw, 787, 265, 91, 34, idTestDisplay, gui.fontLabel)
 
 	// Preview card
 	sec = static("CDU preview", 38, 346, 190, 26, gui.fontSection)
@@ -639,9 +703,11 @@ func initGUI(e *bridgeEngine) error {
 	setColor(gui.preview, clrPreviewFG)
 
 	// Activity card
-	sec = static("Activity", 628, 346, 160, 26, gui.fontSection)
+	sec = static("Activity", 628, 346, 70, 26, gui.fontSection)
 	setColor(sec, clrText)
-	gui.openLogs = createControl(0, "BUTTON", "Open logs", wsChild|wsVisible|wsTabStop|bsOwnerDraw, 785, 342, 94, 31, idOpenLogs, gui.fontLabel)
+	gui.openLogs = createControl(0, "BUTTON", "Logs", wsChild|wsVisible|wsTabStop|bsOwnerDraw, 700, 342, 52, 31, idOpenLogs, gui.fontLabel)
+	gui.openReport = createControl(0, "BUTTON", "Report", wsChild|wsVisible|wsTabStop|bsOwnerDraw, 756, 342, 58, 31, idOpenReport, gui.fontLabel)
+	gui.copyDiagnostics = createControl(0, "BUTTON", "Copy diag.", wsChild|wsVisible|wsTabStop|bsOwnerDraw, 818, 342, 62, 31, idCopyDiagnostics, gui.fontSmall)
 	gui.logBox = createControl(0, "EDIT", "", wsChild|wsVisible|wsVScroll|esMultiline|esAutoVScroll|esReadOnly, 628, 382, 252, 205, 0, gui.fontSmall)
 	gui.errorLabel = static("", 628, 600, 252, 42, gui.fontSmall)
 	setColor(gui.errorLabel, clrMuted)
@@ -673,6 +739,19 @@ func initGUI(e *bridgeEngine) error {
 func main() {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
+
+	instanceHandle, alreadyRunning, err := acquireSingleInstance()
+	if err != nil {
+		showFatal(err)
+		return
+	}
+	if alreadyRunning {
+		msg := ptr(appName + " is already running.")
+		title := ptr(appName)
+		pMessageBoxW.Call(0, uintptr(unsafe.Pointer(msg)), uintptr(unsafe.Pointer(title)), 0x40)
+		return
+	}
+	defer closeHandle(instanceHandle)
 
 	e, err := newBridgeEngine()
 	if err != nil {

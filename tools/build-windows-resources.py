@@ -18,7 +18,7 @@ TOOLS = ROOT / "tools"
 GEN = TOOLS / ".generated-resources"
 ICON = ROOT / "OpenAvionicsBridge.ico"
 OUT = ROOT / "resource_windows_amd64.syso"
-VERSION = os.environ.get("OAB_VERSION", "1.0.0-rc3")
+VERSION = os.environ.get("OAB_VERSION", "1.0.0-rc4")
 
 
 def pad4(buf: bytearray) -> None:

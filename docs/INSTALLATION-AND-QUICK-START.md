@@ -1,6 +1,6 @@
 # Installation and Quick Start
 
-> Current version: **OpenAvionicsBridge 1.0.0-rc3**
+> Current version: **OpenAvionicsBridge 1.0.0-rc4**
 
 This page describes the normal setup for the current WinWing/MobiFlight output path.
 
@@ -11,7 +11,7 @@ This page describes the normal setup for the current WinWing/MobiFlight output p
 - a supported aircraft/build
 - MobiFlight running locally
 - a WinWing MCDU configured and available in MobiFlight
-- OpenAvionicsBridge 1.0.0-rc3
+- OpenAvionicsBridge 1.0.0-rc4
 
 No separate Go runtime is required for the release executable.
 
@@ -147,3 +147,39 @@ The current rc3 build does not:
 - provide a generic external JSON API yet.
 
 The current public output path is WinWing MCDU through MobiFlight.
+
+
+## rc4 diagnostic controls
+
+### Test display
+
+Stop the live bridge and click **Test display** to test the selected Captain/First Officer MobiFlight endpoint without MSFS. The pattern stays active for a few seconds and exercises large text, small text, numbers and special symbols.
+
+This is useful for separating two classes of problem:
+
+```text
+test display works
+→ hardware/MobiFlight path is working
+→ investigate aircraft detection or memory layout
+
+test display fails
+→ investigate MobiFlight, WinWing or the local WebSocket path first
+```
+
+### Report
+
+**Report** opens:
+
+```text
+%LOCALAPPDATA%\OpenAvionicsBridge\logs\compatibility-report.txt
+```
+
+when a report has already been created.
+
+### Copy diag.
+
+**Copy diag.** copies the current application status plus the compatibility report to the Windows clipboard so it can be pasted into a GitHub issue.
+
+### Update status
+
+The header performs a lightweight request to the public GitHub Releases API. If a newer release exists, the status becomes clickable and opens that release page. No simulator, aircraft, hardware, log or diagnostic data is uploaded by the update check.

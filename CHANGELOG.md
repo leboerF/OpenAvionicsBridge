@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.0-rc4 — 2026-09-21
+
+Quality-of-life release candidate for public testing.
+
+- Added one-click **Copy diagnostics** support for GitHub issue reports.
+- Added a direct **Report** button for `compatibility-report.txt`.
+- Added a **Test display** mode that sends a deterministic CDU pattern to MobiFlight without requiring MSFS.
+- Added single-instance protection to prevent multiple bridge processes from competing for the same hardware endpoint.
+- Improved profile/build status with profile, adapter, verification state and short SHA-256 information.
+- Added an automatic GitHub release update check with a clickable status in the header.
+- Added unit coverage for version comparison and the test display.
+
 ## 1.0.0-rc3 — 2026-09-21
 
 First public release candidate focused on portability and tester diagnostics.
