@@ -90,6 +90,17 @@ It supports profile-driven aircraft whose CDU can be reconstructed from known lo
 
 See [docs/ADDING-AIRCRAFT.md](docs/ADDING-AIRCRAFT.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+## Documentation
+
+The repository includes wiki-style documentation under `docs/`:
+
+- [Wiki Home](docs/WIKI-HOME.md)
+- [Installation and Quick Start](docs/INSTALLATION-AND-QUICK-START.md)
+- [Compatibility and Testing](docs/COMPATIBILITY-AND-TESTING.md)
+- [Troubleshooting](docs/TROUBLESHOOTING.md)
+- [Technical Architecture](docs/TECHNICAL-ARCHITECTURE.md)
+- [Adding Aircraft Support](docs/ADDING-AIRCRAFT.md)
+
 ## Building from source
 
 The project uses Go and the native Win32 API. There are currently no runtime third-party Go dependencies.

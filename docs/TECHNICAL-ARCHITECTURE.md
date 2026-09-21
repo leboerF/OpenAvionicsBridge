@@ -1,5 +1,9 @@
 # Technical architecture: MSFS → CDU → WinWing
 
+> **Wiki navigation:** [Home](WIKI-HOME.md) · [Quick Start](INSTALLATION-AND-QUICK-START.md) · [Compatibility](COMPATIBILITY-AND-TESTING.md) · [Troubleshooting](TROUBLESHOOTING.md) · [Adding Aircraft](ADDING-AIRCRAFT.md)
+
+> Version scope: **OpenAvionicsBridge 1.0.0-rc3**. This page describes the implementation currently present in the `main` branch.
+
 This document describes the current `1.0.0-rc3` data path in enough detail for developers who want to understand, review, or extend OpenAvionicsBridge.
 
 ## Overview
@@ -250,3 +254,16 @@ If it requires a different mechanism, a new `aircraftAdapter` implementation can
 - logging and recovery behavior.
 
 This is the primary extension point for future aircraft support.
+
+
+## 11. Current limitations
+
+The rc3 architecture is intentionally more general than the first Fokker-only development builds, but some components are still specific to the current integration:
+
+- only one acquisition adapter is currently implemented: `wasm-linear-memory-cdu-v1`,
+- the normalized display model is currently a 24 × 14 character CDU,
+- the only public output transport is the MobiFlight/WinWing WebSocket path,
+- build profiles still contain aircraft-specific memory offsets,
+- F70 hardware verification is still pending.
+
+These are implementation limits, not architectural requirements. New adapters and output transports can be added without reverting to a fixed generated DLL filename or putting vendor-specific logic back into the core engine.

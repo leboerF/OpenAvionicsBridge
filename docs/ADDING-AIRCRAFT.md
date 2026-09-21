@@ -1,5 +1,9 @@
 # Adding aircraft support
 
+> **Wiki navigation:** [Home](WIKI-HOME.md) · [Quick Start](INSTALLATION-AND-QUICK-START.md) · [Compatibility](COMPATIBILITY-AND-TESTING.md) · [Troubleshooting](TROUBLESHOOTING.md) · [Adding Aircraft](ADDING-AIRCRAFT.md)
+
+> Version scope: **OpenAvionicsBridge 1.0.0-rc3**.
+
 OpenAvionicsBridge separates **how display data is acquired** from **how the normalized CDU frame is rendered and transmitted**.
 
 ## If the aircraft fits an existing adapter
@@ -55,3 +59,28 @@ Aircraft adapters should ultimately produce the normalized display model instead
 ## Redistribution
 
 Do not commit or redistribute proprietary aircraft binaries, vendor source code, assets, credentials, or extracted copyrighted content. Profiles should contain only interoperability data required by OpenAvionicsBridge.
+
+
+## Recommended contribution workflow
+
+When adding support for another aircraft/build:
+
+1. identify the aircraft's display-data source,
+2. decide whether an existing adapter can acquire it safely,
+3. collect only the interoperability information needed by the bridge,
+4. create a local profile or adapter implementation,
+5. validate both display sides where applicable,
+6. test display pages, scratchpad, font sizes and special symbols,
+7. verify disconnect/reconnect behavior,
+8. include a compatibility report and test notes with the contribution.
+
+Do not mark a build as verified solely because the bridge attaches. Compare the external display with the in-sim avionics on several representative pages.
+
+## Profile overrides for development
+
+A `profiles.json` file next to the executable is merged with the built-in profiles at startup.
+
+- a profile with a new `id` is added,
+- a profile using an existing `id` replaces that built-in profile for the current run.
+
+This allows experimental profiles to be tested without changing the compiled executable. Invalid profiles are rejected during profile validation.
