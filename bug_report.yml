@@ -1,0 +1,37 @@
+name: Bug report
+description: Report a reproducible OpenAvionicsBridge problem
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: OpenAvionicsBridge version
+      placeholder: 1.0.0-rc2
+    validations:
+      required: true
+  - type: input
+    id: aircraft
+    attributes:
+      label: Aircraft and version/build
+      placeholder: Just Flight F100 Professional 1.3
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: Hardware / MobiFlight version
+      placeholder: WinWing MCDU, MobiFlight ...
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log excerpt
+      description: Remove any personal information before posting.
+      render: text

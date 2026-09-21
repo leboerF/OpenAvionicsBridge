@@ -1,0 +1,20 @@
+# Build output
+OpenAvionicsBridge.exe
+*.exe
+*.zip
+/dist/
+
+# Generated temporary Windows resource files
+tools/.generated-resources/
+tools/resource_windows_amd64.s
+
+# Local runtime/config files
+profiles.json
+startup-error.txt
+*.log
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

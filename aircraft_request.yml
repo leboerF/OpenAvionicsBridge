@@ -1,0 +1,28 @@
+name: Aircraft support request
+description: Suggest another aircraft integration
+title: "[Aircraft] "
+labels: ["aircraft-support"]
+body:
+  - type: input
+    id: aircraft
+    attributes:
+      label: Aircraft
+      placeholder: Developer + aircraft name
+    validations:
+      required: true
+  - type: input
+    id: simulator
+    attributes:
+      label: Simulator
+      placeholder: MSFS 2024
+    validations:
+      required: true
+  - type: textarea
+    id: hardware
+    attributes:
+      label: Target hardware / output
+      placeholder: WinWing MCDU, DIY CDU, generic JSON, ...
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional information
