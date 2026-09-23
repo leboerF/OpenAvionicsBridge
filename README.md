@@ -160,6 +160,10 @@ OpenAvionicsBridge is released under the **MIT License**. See [LICENSE](LICENSE)
 
 ## Disclaimer
 
-This is an independent community project and is not affiliated with, endorsed by, or supported by Microsoft, Asobo Studio, Just Flight, WinWing, or MobiFlight. Product and company names are used only to identify compatibility. No proprietary aircraft files, assets, code, or content are distributed with this repository.
+This is an independent, community-developed open-source project.
+
+It is not affiliated with, endorsed by, sponsored by, or officially supported by any aircraft developer, publisher, simulator developer, hardware manufacturer, or other company whose products are mentioned in this project.
+
+All product names, trademarks, logos, and other intellectual property remain the property of their respective owners. Product and company names are used only to identify compatibility. No proprietary aircraft files, assets, code, or content are distributed with this repository.
 
 © 2026 leboerF
