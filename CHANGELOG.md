@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.2 — 2026-09-25
+
+Maintenance release fixing selector-driven FMS messages on the Just Flight F70/F100 CDU scratchpad.
+
+- Added Captain and First Officer FMS message-selector reads at the verified WASM offsets.
+- Selector 0 keeps the existing normal scratchpad path, including `CLR*`.
+- Added mappings for the verified standard messages `NOT IN DATABASE` and `NOT ALLOWED`.
+- Added the observed SimBrief/company-route message group for selectors 1001–1009.
+- Unknown selector values safely fall back to the normal scratchpad instead of blanking the display.
+- Added one immediate retry for transient WASM memory-read failures before re-attaching.
+- Added regression tests for selector offsets, message mappings, and fallback behavior.
+
 ## 1.0.1 — 2026-09-25
 
 Maintenance release preparing the display core for aircraft with multi-color CDU/FMS output while preserving current F70/F100 behavior.
