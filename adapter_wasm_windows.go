@@ -179,6 +179,11 @@ func validateCDULayoutMemory(h processHandle, linear uintptr, l cduLayout) error
 			return fmt.Errorf("%s at 0x%X is not a plausible CDU text block: %v", c.name, c.off, err)
 		}
 	}
+	if l.MessageSelector != 0 {
+		if _, err := h.Read(linear+uintptr(l.MessageSelector), 4); err != nil {
+			return fmt.Errorf("message selector at 0x%X is not readable: %v", l.MessageSelector, err)
+		}
+	}
 	return nil
 }
 
