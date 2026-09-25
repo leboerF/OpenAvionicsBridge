@@ -6,9 +6,26 @@ import (
 	"unicode/utf8"
 )
 
+type displayColor string
+
+const (
+	displayColorAmber   displayColor = "a"
+	displayColorWhite   displayColor = "w"
+	displayColorCyan    displayColor = "c"
+	displayColorGreen   displayColor = "g"
+	displayColorMagenta displayColor = "m"
+	displayColorRed     displayColor = "r"
+	displayColorYellow  displayColor = "y"
+	displayColorBlue    displayColor = "o"
+	displayColorGrey    displayColor = "e"
+	displayColorKhaki   displayColor = "k"
+)
+
 type cell struct {
-	Ch   string
-	Size int // 0=large, 1=small
+	Ch      string
+	Size    int // 0=large, 1=small
+	Color   displayColor
+	Inverse bool
 }
 
 type displayFrame struct {
@@ -134,7 +151,7 @@ func buildDisplay(titleLarge, titleSmall string, labels, large, small [12]string
 		var sb strings.Builder
 		for c := 0; c < 24; c++ {
 			sb.WriteString(rows[r][c])
-			out.Cells[cellIndex] = cell{Ch: rows[r][c], Size: sizes[r][c]}
+			out.Cells[cellIndex] = cell{Ch: rows[r][c], Size: sizes[r][c], Color: displayColorGreen}
 			cellIndex++
 		}
 		out.Rows[r] = sb.String()

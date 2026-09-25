@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Extended the normalized 336-cell display model with per-cell WinCtrl color and reverse/inverse-video state.
+- MobiFlight serialization now preserves supported cell colors and emits the optional inverse style when required.
+- Existing F70/F100 output remains green by default for backward-compatible behavior.
+- Added tests for all supported WinCtrl color identifiers, green fallback, inverse serialization, and the Fokker default color.
+
+
 ## 1.0.0 — 2026-09-21
 
 First stable public release.

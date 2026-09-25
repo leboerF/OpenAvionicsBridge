@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -671,20 +670,3 @@ func (e *bridgeEngine) readFrame() (displayFrame, error) {
 	return buildDisplay(decodeWasmString(a, 0, 24), decodeWasmString(b, 0, 24), decodeWasmLayer(c), decodeWasmLayer(d), decodeWasmLayer(s), decodeWasmString(x, 0, 24)), nil
 }
 
-func frameJSON(f displayFrame) string {
-	var sb strings.Builder
-	sb.Grow(7000)
-	sb.WriteString(`{"Target":"Display","Data":[`)
-	for i, c := range f.Cells {
-		if i > 0 {
-			sb.WriteByte(',')
-		}
-		sb.WriteByte('[')
-		sb.WriteString(strconv.Quote(c.Ch))
-		sb.WriteString(`,"g",`)
-		sb.WriteString(strconv.Itoa(c.Size))
-		sb.WriteByte(']')
-	}
-	sb.WriteString(`]}`)
-	return sb.String()
-}

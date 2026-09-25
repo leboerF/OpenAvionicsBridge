@@ -171,7 +171,11 @@ Each cell stores:
 ```text
 character
 font size (large/small)
+display color
+inverse/reverse-video state
 ```
+
+The F70/F100 adapter currently assigns green to every reconstructed cell. The richer normalized cell model is intentionally aircraft-neutral so adapters with multi-color displays can preserve the source renderer's color and inverse-video state.
 
 The row mapping is:
 
@@ -199,13 +203,19 @@ ws://localhost:8320/winwing/cdu-captain
 ws://localhost:8320/winwing/cdu-co-pilot
 ```
 
-The 336 normalized cells are serialized as the MobiFlight display message. Conceptually each cell contains:
+The 336 normalized cells are serialized as the MobiFlight display message. A normal cell contains:
 
 ```json
 ["A", "g", 0]
 ```
 
-where the final value represents the font-size state used by the current WinWing integration.
+and an inverse/reverse-video cell can contain the optional fourth style value:
+
+```json
+["A", "m", 1, 1]
+```
+
+The second value is the WinCtrl color identifier, the third value is the font size (0 large, 1 small), and the optional fourth value is the reverse-video style (1 inverse). Supported color identifiers are amber (`a`), white (`w`), cyan (`c`), green (`g`), magenta (`m`), red (`r`), yellow (`y`), blue (`o`), grey (`e`), and khaki (`k`). Unknown or unset colors are normalized to green for backward compatibility.
 
 The bridge uses the MCDU's normal rendering/font path. It does not send a bitmap of the aircraft CDU.
 
