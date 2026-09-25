@@ -2,9 +2,9 @@
 
 > **Wiki navigation:** [Home](WIKI-HOME.md) · [Quick Start](INSTALLATION-AND-QUICK-START.md) · [Compatibility](COMPATIBILITY-AND-TESTING.md) · [Troubleshooting](TROUBLESHOOTING.md) · [Adding Aircraft](ADDING-AIRCRAFT.md)
 
-> Version scope: **OpenAvionicsBridge 1.0.0**. This page describes the implementation currently present in the `main` branch.
+> Version scope: **OpenAvionicsBridge 1.0.1**. This page describes the implementation currently present in the `main` branch.
 
-This document describes the current `1.0.0` data path in enough detail for developers who want to understand, review, or extend OpenAvionicsBridge.
+This document describes the current `1.0.1` data path in enough detail for developers who want to understand, review, or extend OpenAvionicsBridge.
 
 ## Overview
 
@@ -77,7 +77,7 @@ This removes the dependency on one particular generated DLL filename.
 
 ## 3. Resolving WASM linear memory
 
-The export table provides the RVA of the exported `*_WASM_linearmemory0` variable. Version 1.0.0 resolves this RVA at runtime; it is not a fixed profile value.
+The export table provides the RVA of the exported `*_WASM_linearmemory0` variable. Version 1.0.1 resolves this RVA at runtime; it is not a fixed profile value.
 
 The bridge then reads the 64-bit pointer stored at:
 

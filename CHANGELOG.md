@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.0.1 — 2026-09-25
+
+Maintenance release preparing the display core for aircraft with multi-color CDU/FMS output while preserving current F70/F100 behavior.
 
 - Extended the normalized 336-cell display model with per-cell WinCtrl color and reverse/inverse-video state.
 - MobiFlight serialization now preserves supported cell colors and emits the optional inverse style when required.

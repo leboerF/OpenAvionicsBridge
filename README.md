@@ -4,7 +4,7 @@ OpenAvionicsBridge is an open-source Windows bridge for Microsoft Flight Simulat
 
 The first integration targets the **Just Flight F70/F100 Professional for MSFS 2024** and sends the CDU display to **WinWing MCDU hardware through MobiFlight**.
 
-> **Current stable release:** `1.0.0`  
+> **Current stable release:** `1.0.1`  
 > **License:** MIT  
 > **Author:** `leboerF`
 
@@ -39,7 +39,7 @@ Aircraft support is build-specific. An aircraft update can require a profile upd
 
 Early development builds identified the Fokker runtime using one generated DLL name and one SHA-256 value. That was safe for development but too strict for public testing.
 
-The portable detection model introduced during release-candidate testing is retained in **1.0.0**:
+The portable detection model introduced during release-candidate testing is retained in **1.0.1**:
 
 1. Finds the running Microsoft Flight Simulator process.
 2. Enumerates loaded modules.
@@ -122,7 +122,7 @@ The project uses Go and the native Win32 API. There are currently no runtime thi
 ```bash
 python tools/build-windows-resources.py
 GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
-  -ldflags="-s -w -H=windowsgui -X main.appVersion=1.0.0" \
+  -ldflags="-s -w -H=windowsgui -X main.appVersion=1.0.1" \
   -o OpenAvionicsBridge.exe .
 ```
 
@@ -142,7 +142,7 @@ GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go test -c .
 
 ## Update check
 
-OpenAvionicsBridge 1.0.0 performs a lightweight update check against the public GitHub Releases API at startup. It sends no simulator, aircraft, hardware, log, or diagnostic data; it only requests the public releases list for this repository. If the check fails, bridge operation continues normally.
+OpenAvionicsBridge 1.0.1 performs a lightweight update check against the public GitHub Releases API at startup. It sends no simulator, aircraft, hardware, log, or diagnostic data; it only requests the public releases list for this repository. If the check fails, bridge operation continues normally.
 
 ## Windows SmartScreen and code signing
 
@@ -152,7 +152,7 @@ Release builds are currently unsigned. Windows SmartScreen can therefore show a 
 
 OpenAvionicsBridge is intended to become a common bridge for several MSFS aircraft rather than an F70/F100-only utility. The normalized 24×14 CDU frame is already separated from aircraft discovery, and the aircraft adapter registry provides the boundary for future integrations.
 
-Generic JSON/plain-text output is a planned extension; `1.0.0` ships with the MobiFlight/WinWing output transport.
+Generic JSON/plain-text output is a planned extension; `1.0.1` ships with the MobiFlight/WinWing output transport.
 
 ## License
 
