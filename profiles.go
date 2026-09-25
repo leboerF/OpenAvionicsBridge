@@ -9,13 +9,14 @@ import (
 const wasmCDUAdapterID = "wasm-linear-memory-cdu-v1"
 
 type cduLayout struct {
-	TitleLarge uint64 `json:"titleLarge"`
-	TitleSmall uint64 `json:"titleSmall"`
-	LabelLayer uint64 `json:"labelLayer"`
-	LargeLayer uint64 `json:"largeLayer"`
-	SmallLayer uint64 `json:"smallLayer"`
-	Scratchpad uint64 `json:"scratchpad"`
-	URL        string `json:"url"`
+	TitleLarge      uint64 `json:"titleLarge"`
+	TitleSmall      uint64 `json:"titleSmall"`
+	LabelLayer      uint64 `json:"labelLayer"`
+	LargeLayer      uint64 `json:"largeLayer"`
+	SmallLayer      uint64 `json:"smallLayer"`
+	Scratchpad      uint64 `json:"scratchpad"`
+	MessageSelector uint64 `json:"messageSelector,omitempty"`
+	URL             string `json:"url"`
 }
 
 // aircraftProfile contains only aircraft/build-specific information. The engine
@@ -44,6 +45,11 @@ type aircraftProfile struct {
 	RequiredExportSuffixes   []string `json:"requiredExportSuffixes,omitempty"`
 	LinearMemoryExportSuffix string   `json:"linearMemoryExportSuffix,omitempty"`
 
+	// FMSMessages maps selector values to UTF-32 string offsets inside the
+	// aircraft WASM linear memory. A zero selector always means "use the normal
+	// scratchpad"; unknown selectors deliberately fall back to that path too.
+	FMSMessages map[uint32]uint64 `json:"fmsMessages,omitempty"`
+
 	Captain cduLayout `json:"captain"`
 	Copilot cduLayout `json:"copilot"`
 }
@@ -69,17 +75,23 @@ func defaultProfiles() []aircraftProfile {
 			"_WASM_CDU_DISP_2_gauge_callback",
 		},
 		LinearMemoryExportSuffix: "_WASM_linearmemory0",
+		FMSMessages: map[uint32]uint64{
+			1: 0x21E80, 2: 0x21EC0,
+			1001: 0x2C050, 1002: 0x2C094, 1003: 0x2C0CC,
+			1004: 0x2C120, 1005: 0x2C17C, 1006: 0x2C1B4,
+			1007: 0x2C204, 1008: 0x2C25C, 1009: 0x2C2B4,
+		},
 		Captain: cduLayout{
 			TitleLarge: 0x1805F0, TitleSmall: 0x1806B0,
 			LabelLayer: 0x180770, LargeLayer: 0x181070, SmallLayer: 0x181970,
-			Scratchpad: 0x182270,
-			URL:        "ws://localhost:8320/winwing/cdu-captain",
+			Scratchpad: 0x182270, MessageSelector: 0x182398,
+			URL: "ws://localhost:8320/winwing/cdu-captain",
 		},
 		Copilot: cduLayout{
 			TitleLarge: 0x180650, TitleSmall: 0x180710,
 			LabelLayer: 0x180BF0, LargeLayer: 0x1814F0, SmallLayer: 0x181DF0,
-			Scratchpad: 0x1822D0,
-			URL:        "ws://localhost:8320/winwing/cdu-co-pilot",
+			Scratchpad: 0x1822D0, MessageSelector: 0x18239C,
+			URL: "ws://localhost:8320/winwing/cdu-co-pilot",
 		},
 	}}
 }
