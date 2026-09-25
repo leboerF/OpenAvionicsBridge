@@ -634,10 +634,23 @@ func (e *bridgeEngine) writeCompatibilityReport(report string) {
 	_ = os.WriteFile(path, []byte(report), 0644)
 }
 func (e *bridgeEngine) readFrame() (displayFrame, error) {
+	frame, err := e.readFrameOnce()
+	if err == nil {
+		return frame, nil
+	}
+	// A WASM runtime transition can briefly invalidate one ReadProcessMemory
+	// call. Retry once before detaching so short-lived aircraft updates do not
+	// unnecessarily tear down the bridge.
+	time.Sleep(5 * time.Millisecond)
+	return e.readFrameOnce()
+}
+
+func (e *bridgeEngine) readFrameOnce() (displayFrame, error) {
 	e.mu.Lock()
 	h := e.handle
 	linear := e.linear
 	l := e.layout
+	p := e.profile
 	e.mu.Unlock()
 	if h == 0 || linear == 0 {
 		return displayFrame{}, fmt.Errorf("not attached")
@@ -667,6 +680,16 @@ func (e *bridgeEngine) readFrame() (displayFrame, error) {
 	if err != nil {
 		return displayFrame{}, err
 	}
-	return buildDisplay(decodeWasmString(a, 0, 24), decodeWasmString(b, 0, 24), decodeWasmLayer(c), decodeWasmLayer(d), decodeWasmLayer(s), decodeWasmString(x, 0, 24)), nil
+
+	scratch := decodeWasmString(x, 0, 24)
+	if p != nil {
+		if msg, ok, err := resolveFMSMessage(h, linear, l.MessageSelector, p.FMSMessages); err != nil {
+			return displayFrame{}, err
+		} else if ok {
+			scratch = msg
+		}
+	}
+
+	return buildDisplay(decodeWasmString(a, 0, 24), decodeWasmString(b, 0, 24), decodeWasmLayer(c), decodeWasmLayer(d), decodeWasmLayer(s), scratch), nil
 }
 
