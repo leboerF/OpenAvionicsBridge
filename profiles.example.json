@@ -25,7 +25,8 @@
         "largeLayer": 1577072,
         "smallLayer": 1579376,
         "scratchpad": 1581680,
-        "url": "ws://localhost:8320/winwing/cdu-captain"
+        "url": "ws://localhost:8320/winwing/cdu-captain",
+        "messageSelector": 1581976
       },
       "copilot": {
         "titleLarge": 1574480,
@@ -34,7 +35,21 @@
         "largeLayer": 1578224,
         "smallLayer": 1580528,
         "scratchpad": 1581776,
-        "url": "ws://localhost:8320/winwing/cdu-co-pilot"
+        "url": "ws://localhost:8320/winwing/cdu-co-pilot",
+        "messageSelector": 1581980
+      },
+      "fmsMessages": {
+        "1": 138880,
+        "2": 138944,
+        "1001": 180304,
+        "1002": 180372,
+        "1003": 180428,
+        "1004": 180512,
+        "1005": 180604,
+        "1006": 180660,
+        "1007": 180740,
+        "1008": 180828,
+        "1009": 180916
       }
     }
   ]
